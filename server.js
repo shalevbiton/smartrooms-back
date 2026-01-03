@@ -191,7 +191,7 @@ app.put('/api/users/:id', async (req, res) => {
     if (req.body.status !== undefined) updateData.status = req.body.status;
     if (req.body.avatar !== undefined) updateData.avatar = req.body.avatar;
     if (req.body.customBackground !== undefined) updateData.custom_background = req.body.customBackground;
-    
+
     const { data, error } = await supabase.from('users').update(updateData).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json(mapUserFromDB(data));
@@ -251,7 +251,7 @@ app.put('/api/rooms/:id', async (req, res) => {
     if (req.body.description !== undefined) updateData.description = req.body.description;
     if (req.body.isAvailable !== undefined) updateData.is_available = req.body.isAvailable;
     if (req.body.isRecorded !== undefined) updateData.is_recorded = req.body.isRecorded;
-    
+
     const { data, error } = await supabase.from('rooms').update(updateData).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json(mapRoomFromDB(data));
@@ -307,7 +307,7 @@ app.put('/api/bookings/:id', async (req, res) => {
     if (req.body.status !== undefined) updateData.status = req.body.status;
     if (req.body.checkoutVideoUrl !== undefined) updateData.checkout_video_url = req.body.checkoutVideoUrl;
     if (req.body.isRecorded !== undefined) updateData.is_recorded = req.body.isRecorded;
-    
+
     const { data, error } = await supabase.from('bookings').update(updateData).eq('id', req.params.id).select().single();
     if (error) throw error;
     res.json(mapBookingFromDB(data));
@@ -326,6 +326,15 @@ app.delete('/api/bookings/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend API running at http://localhost:${PORT}`);
+// Health Check
+app.get('/', (req, res) => {
+  res.send('SmartRooms Backend is successfully running!');
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Backend API running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
