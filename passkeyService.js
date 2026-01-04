@@ -1,62 +1,115 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
-const DB_PATH = path.join(__dirname, 'passkeys.json');
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Ensure DB file exists
-if (!fs.existsSync(DB_PATH)) {
-    fs.writeFileSync(DB_PATH, JSON.stringify([]));
+let supabase;
+
+if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+} else {
+    console.error("PasskeyService: Missing Supabase credentials. Passkeys will not work.");
 }
 
-export const getPasskeys = () => {
-    try {
-        const data = fs.readFileSync(DB_PATH, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
+// Map DB format to Internal format
+const mapPasskeyFromDB = (p) => ({
+    id: p.cred_id,
+    publicKey: p.public_key,
+    counter: p.counter,
+    transports: p.transports,
+    userID: p.user_id
+});
+
+export const getPasskeyByCredentialID = async (credentialID) => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+        .from('passkeys')
+        .select('*')
+        .eq('cred_id', credentialID)
+        .single();
+
+    if (error || !data) return null;
+    return mapPasskeyFromDB(data);
+};
+
+export const getUserPasskeys = async (userId) => {
+    if (!supabase) return [];
+    const { data, error } = await supabase
+        .from('passkeys')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error("Error fetching user passkeys:", error);
         return [];
     }
+    return data.map(mapPasskeyFromDB);
 };
 
-export const savePasskey = (newPasskey) => {
-    const passkeys = getPasskeys();
-    passkeys.push(newPasskey);
-    fs.writeFileSync(DB_PATH, JSON.stringify(passkeys, null, 2));
-};
+export const savePasskey = async (newPasskey) => {
+    if (!supabase) return;
 
-export const getPasskeyByCredentialID = (credentialID) => {
-    const passkeys = getPasskeys();
-    return passkeys.find(p => p.id === credentialID);
-};
+    // newPasskey structure from server.js: { id, publicKey, counter, transports, userID }
+    // DB structure: { cred_id, public_key, counter, transports, user_id }
 
-export const getUserPasskeys = (userId) => {
-    const passkeys = getPasskeys();
-    return passkeys.filter(p => p.userID === userId);
-};
+    const dbPasskey = {
+        cred_id: newPasskey.id,
+        public_key: newPasskey.publicKey, // This might be a Buffer/Uint8Array, need to stringify? 
+        // simplewebauthn usually returns base64url or buffer.
+        // We should treat it as text/base64 for storage or keep as varies.
+        // Actually simplewebauthn uses base64url strings for IDs but publicKey might be buffer.
+        // 'verifyRegistrationResponse' returns credentialPublicKey as Uint8Array (Buffer).
+        // We need to convert Buffer to base64 string for storage if column is text.
+        counter: newPasskey.counter,
+        transports: newPasskey.transports,
+        user_id: newPasskey.userID
+    };
 
-export const updatePasskeyCounter = (credentialID, newCounter) => {
-    const passkeys = getPasskeys();
-    const passkey = passkeys.find(p => p.id === credentialID);
-    if (passkey) {
-        passkey.counter = newCounter;
-        fs.writeFileSync(DB_PATH, JSON.stringify(passkeys, null, 2));
+    // Ensure publicKey is a string (base64)
+    if (typeof dbPasskey.public_key !== 'string') {
+        dbPasskey.public_key = Buffer.from(dbPasskey.public_key).toString('base64');
     }
+
+    const { error } = await supabase.from('passkeys').insert(dbPasskey);
+    if (error) console.error("Error saving passkey:", error);
 };
 
-// In-memory store for challenges (ephemeral)
-const challenges = new Map();
-
-export const setChallenge = (userId, challenge) => {
-    challenges.set(userId, challenge);
+export const updatePasskeyCounter = async (credentialID, newCounter) => {
+    if (!supabase) return;
+    await supabase
+        .from('passkeys')
+        .update({ counter: newCounter })
+        .eq('cred_id', credentialID);
 };
 
-export const getChallenge = (userId) => {
-    return challenges.get(userId);
+// Stateless Challenge Store (DB)
+
+export const setChallenge = async (userId, challenge) => {
+    if (!supabase) return;
+    // upsert
+    await supabase
+        .from('auth_challenges')
+        .upsert({ user_id: userId, challenge });
 };
 
-export const clearChallenge = (userId) => {
-    challenges.delete(userId);
+export const getChallenge = async (userId) => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+        .from('auth_challenges')
+        .select('challenge')
+        .eq('user_id', userId)
+        .single();
+
+    if (error || !data) return null;
+    return data.challenge;
+};
+
+export const clearChallenge = async (userId) => {
+    if (!supabase) return;
+    await supabase
+        .from('auth_challenges')
+        .delete()
+        .eq('user_id', userId);
 };

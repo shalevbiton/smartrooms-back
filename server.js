@@ -212,7 +212,7 @@ app.post('/auth/register-options', async (req, res) => {
 
   try {
     const user = jwt.verify(token, SECRET_KEY);
-    const userPasskeys = getUserPasskeys(user.id);
+    const userPasskeys = await getUserPasskeys(user.id);
 
     const options = await generateRegistrationOptions({
       rpName: 'SmartRooms',
@@ -231,7 +231,7 @@ app.post('/auth/register-options', async (req, res) => {
       },
     });
 
-    setChallenge(user.id, options.challenge);
+    await setChallenge(user.id, options.challenge);
     res.json(options);
   } catch (error) {
     console.error(error);
@@ -246,7 +246,7 @@ app.post('/auth/register-verify', async (req, res) => {
   try {
     const user = jwt.verify(token, SECRET_KEY);
     const { body } = req;
-    const expectedChallenge = getChallenge(user.id);
+    const expectedChallenge = await getChallenge(user.id);
 
     const verification = await verifyRegistrationResponse({
       response: body,
@@ -258,7 +258,7 @@ app.post('/auth/register-verify', async (req, res) => {
     if (verification.verified) {
       const { registrationInfo } = verification;
 
-      savePasskey({
+      await savePasskey({
         id: registrationInfo.credentialID,
         publicKey: registrationInfo.credentialPublicKey,
         counter: registrationInfo.counter,
@@ -266,7 +266,7 @@ app.post('/auth/register-verify', async (req, res) => {
         userID: user.id,
       });
 
-      clearChallenge(user.id);
+      await clearChallenge(user.id);
       res.json({ verified: true });
     } else {
       res.status(400).json({ verified: false, error: "Verification failed" });
@@ -288,7 +288,7 @@ app.post('/auth/login-options', async (req, res) => {
       return res.status(400).json({ error: "User not found" });
     }
 
-    const userPasskeys = getUserPasskeys(user.id);
+    const userPasskeys = await getUserPasskeys(user.id);
     /* 
     // Allow login even if no passkeys (though frontend should probably check first)
     if (userPasskeys.length === 0) {
@@ -305,7 +305,7 @@ app.post('/auth/login-options', async (req, res) => {
       userVerification: 'preferred',
     });
 
-    setChallenge(user.id, options.challenge);
+    await setChallenge(user.id, options.challenge);
     res.json(options);
   } catch (error) {
     console.error(error);
@@ -320,8 +320,8 @@ app.post('/auth/login-verify', async (req, res) => {
     const { data: user, error } = await supabase.from('users').select('*').eq('personal_id', personalId).single();
     if (error || !user) return res.status(400).json({ error: "User not found" });
 
-    const expectedChallenge = getChallenge(user.id);
-    const passkey = getPasskeyByCredentialID(body.id);
+    const expectedChallenge = await getChallenge(user.id);
+    const passkey = await getPasskeyByCredentialID(body.id);
 
     if (!passkey) {
       return res.status(400).json({ error: "Passkey not found" });
@@ -340,8 +340,8 @@ app.post('/auth/login-verify', async (req, res) => {
     });
 
     if (verification.verified) {
-      updatePasskeyCounter(passkey.id, verification.authenticationInfo.newCounter);
-      clearChallenge(user.id);
+      await updatePasskeyCounter(passkey.id, verification.authenticationInfo.newCounter);
+      await clearChallenge(user.id);
 
       // Log the user in
       const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, SECRET_KEY, { expiresIn: '30d' });
