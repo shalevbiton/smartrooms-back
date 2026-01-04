@@ -27,7 +27,17 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const RP_ID = 'localhost';
+// Extract hostname for RP_ID (e.g., 'localhost' or 'smartrooms.vercel.app')
+const getRpId = (url) => {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname;
+  } catch (e) {
+    return 'localhost';
+  }
+};
+
+const RP_ID = process.env.RP_ID || getRpId(FRONTEND_URL);
 const ORIGIN = FRONTEND_URL;
 
 // Validate required environment variables
