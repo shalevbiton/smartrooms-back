@@ -1,0 +1,24 @@
+cd rooms-back
+
+
+npm install
+
+
+
+crate a file called ".env" in it write:
+
+
+"PORT=3001
+SECRET_KEY=your_super_secret_key_for_jwt
+FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
+
+SUPABASE_URL=https://qzzxywzgoqiqfcrthmiu.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6enh5d3pnb3FpcWZjcnRobWl1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzQyODcxMiwiZXhwIjoyMDgzMDA0NzEyfQ.ZR083jDwKhcnCfgBs3QQdWSWukP-nYbjKberfZtLmqo
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6enh5d3pnb3FpcWZjcnRobWl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0Mjg3MTIsImV4cCI6MjA4MzAwNDcxMn0.GQekTukDpX04XK-5Ycfn59Lr98HQ-Wec0d6fmvIvZXs"
+
+
+
+then:
+
+npm run dev
