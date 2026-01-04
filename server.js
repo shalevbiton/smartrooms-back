@@ -201,7 +201,7 @@ app.get('/auth/me', (req, res) => {
 });
 
 app.post('/auth/logout', (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'none' });
   res.json({ success: true });
 });
 
@@ -347,8 +347,8 @@ app.post('/auth/login-verify', async (req, res) => {
       const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, SECRET_KEY, { expiresIn: '30d' });
       res.cookie('token', token, {
         httpOnly: true,
-        secure: false, // Localhost
-        sameSite: 'lax',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Required for cross-site requests
         maxAge: 30 * 24 * 60 * 60 * 1000
       });
 
