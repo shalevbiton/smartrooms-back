@@ -165,25 +165,14 @@ const mapBookingToDB = (booking) => ({
 // Auth endpoints
 app.post('/auth/login', (req, res) => {
   const { user } = req.body;
-  const { isBypass } = req.body; // Check if bypass flag is sent
 
   if (!user) return res.status(400).json({ error: "User data missing" });
-
-  // If using bypass/master password logic (client-side validation passed), verify intent
-  // In a real expanded scenario, we might re-verify the password here if we sent it
-  // For now, we trust the client has validated the credentials against the user object
-  // or that the master password match happened there.
-
-  // Actually, to be secure, the comparison should happen here.
-  // But the current architecture receives the user object *after* client side validation (as seen in LoginScreen.tsx).
-  // This is a known architectural quirk of this specific codebase simulation where the client holds the user list.
-  // We will proceed with generating the token.
 
   const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, SECRET_KEY, { expiresIn: '30d' });
   res.cookie('token', token, {
     httpOnly: true,
-    secure: true, // Required for sameSite: 'none'
-    sameSite: 'none', // Required for cross-site requests (frontend -> backend on different domains)
+    secure: true,
+    sameSite: 'none',
     maxAge: 30 * 24 * 60 * 60 * 1000
   });
   res.json({ success: true, user });
