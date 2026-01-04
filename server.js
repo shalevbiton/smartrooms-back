@@ -182,8 +182,8 @@ app.post('/auth/login', (req, res) => {
   const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, SECRET_KEY, { expiresIn: '30d' });
   res.cookie('token', token, {
     httpOnly: true,
-    secure: false,
-    sameSite: 'lax',
+    secure: true, // Required for sameSite: 'none'
+    sameSite: 'none', // Required for cross-site requests (frontend -> backend on different domains)
     maxAge: 30 * 24 * 60 * 60 * 1000
   });
   res.json({ success: true, user });
