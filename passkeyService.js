@@ -16,7 +16,7 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
 // Map DB format to Internal format
 const mapPasskeyFromDB = (p) => ({
     id: p.cred_id,
-    publicKey: p.public_key,
+    publicKey: Buffer.from(p.public_key, 'base64'), // Convert back to Buffer for simplewebauthn
     counter: p.counter,
     transports: p.transports,
     userID: p.user_id
