@@ -529,6 +529,45 @@ app.delete('/api/bookings/:id', async (req, res) => {
   }
 });
 
+// Storage API
+app.post('/api/storage/upload-url', async (req, res) => {
+  try {
+    const { fileName, contentType } = req.body;
+    if (!fileName) return res.status(400).json({ error: 'File name required' });
+
+    const fileExt = fileName.split('.').pop();
+    const filePath = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+
+    // Ensure bucket exists (best effort)
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets || !buckets.find(b => b.name === 'videos')) {
+      await supabase.storage.createBucket('videos', { public: true });
+    }
+
+    // Create Signed Upload URL
+    const { data, error } = await supabase.storage
+      .from('videos')
+      .createSignedUploadUrl(filePath);
+
+    if (error) throw error;
+
+    // Get Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('videos')
+      .getPublicUrl(filePath);
+
+    res.json({
+      signedUrl: data.signedUrl,
+      token: data.token, // Some versions return token
+      path: filePath,
+      publicUrl: publicUrl
+    });
+  } catch (error) {
+    console.error('Storage Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Health Check
 app.get('/', (req, res) => {
   res.send('SmartRooms Backend is successfully running!');
