@@ -31,7 +31,8 @@ CREATE TABLE IF NOT EXISTS rooms (
   capacity INTEGER NOT NULL,
   equipment TEXT[] DEFAULT '{}',
   image_url TEXT NOT NULL,
-  description TEXT,
+  location TEXT,
+  location_type VARCHAR(50) DEFAULT 'YAMAR' CHECK (location_type IN ('PRISON', 'YAMAR')),
   is_available BOOLEAN DEFAULT true,
   is_recorded BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   is_recorded BOOLEAN DEFAULT false,
   checkout_video_url TEXT,
   phone_number VARCHAR(10),
+  booking_type VARCHAR(50) DEFAULT 'INVESTIGATION' CHECK (booking_type IN ('TESTIMONY', 'INVESTIGATION')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   CONSTRAINT no_overlapping_bookings EXCLUDE USING gist (

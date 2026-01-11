@@ -109,7 +109,7 @@ const mapRoomFromDB = (dbRoom) => ({
   capacity: dbRoom.capacity,
   equipment: dbRoom.equipment || [],
   imageUrl: dbRoom.image_url,
-  description: dbRoom.description,
+  locationType: dbRoom.location_type,
   isAvailable: dbRoom.is_available,
   isRecorded: dbRoom.is_recorded,
 });
@@ -119,7 +119,7 @@ const mapRoomToDB = (room) => ({
   capacity: room.capacity,
   equipment: room.equipment || [],
   image_url: room.imageUrl,
-  description: room.description,
+  location_type: room.locationType,
   is_available: room.isAvailable,
   is_recorded: room.isRecorded,
 });
@@ -142,6 +142,7 @@ const mapBookingFromDB = (dbBooking) => ({
   isRecorded: dbBooking.is_recorded,
   checkoutVideoUrl: dbBooking.checkout_video_url,
   phoneNumber: dbBooking.phone_number,
+  type: dbBooking.booking_type,
 });
 
 const mapBookingToDB = (booking) => ({
@@ -160,6 +161,7 @@ const mapBookingToDB = (booking) => ({
   is_recorded: booking.isRecorded,
   checkout_video_url: booking.checkoutVideoUrl,
   phone_number: booking.phoneNumber,
+  booking_type: booking.type,
 });
 
 // Auth endpoints
@@ -451,7 +453,7 @@ app.put('/api/rooms/:id', async (req, res) => {
     if (req.body.capacity !== undefined) updateData.capacity = req.body.capacity;
     if (req.body.equipment !== undefined) updateData.equipment = req.body.equipment;
     if (req.body.imageUrl !== undefined) updateData.image_url = req.body.imageUrl;
-    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.locationType !== undefined) updateData.location_type = req.body.locationType;
     if (req.body.isAvailable !== undefined) updateData.is_available = req.body.isAvailable;
     if (req.body.isRecorded !== undefined) updateData.is_recorded = req.body.isRecorded;
 
