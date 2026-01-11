@@ -23,6 +23,8 @@ import {
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_super_secret_key_for_jwt';
+
+console.log("Server Version: 1.0.1 (Force Redeploy - " + new Date().toISOString() + ")");
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
