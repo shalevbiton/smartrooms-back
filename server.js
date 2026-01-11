@@ -24,6 +24,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const SECRET_KEY = process.env.SECRET_KEY || 'your_super_secret_key_for_jwt';
 
+console.log("Server Version: 1.0.2 (Schema Fallback Patch - " + new Date().toISOString() + ")");
+
 console.log("Server Version: 1.0.1 (Force Redeploy - " + new Date().toISOString() + ")");
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -111,7 +113,7 @@ const mapRoomFromDB = (dbRoom) => ({
   capacity: dbRoom.capacity,
   equipment: dbRoom.equipment || [],
   imageUrl: dbRoom.image_url,
-  locationType: dbRoom.location_type,
+  locationType: dbRoom.location_type || dbRoom.description || 'YAMAR',
   isAvailable: dbRoom.is_available,
   isRecorded: dbRoom.is_recorded,
 });
@@ -440,7 +442,18 @@ app.get('/api/rooms/:id', async (req, res) => {
 
 app.post('/api/rooms', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('rooms').insert(mapRoomToDB(req.body)).select().single();
+    let dbData = mapRoomToDB(req.body);
+    let { data, error } = await supabase.from('rooms').insert(dbData).select().single();
+
+    if (error && (error.code === '42703' || error.message.includes('column'))) {
+      console.log("Fallback: location_type missing, trying description...");
+      delete dbData.location_type;
+      dbData.description = req.body.locationType;
+      const retry = await supabase.from('rooms').insert(dbData).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) throw error;
     res.json(mapRoomFromDB(data));
   } catch (error) {
@@ -459,7 +472,17 @@ app.put('/api/rooms/:id', async (req, res) => {
     if (req.body.isAvailable !== undefined) updateData.is_available = req.body.isAvailable;
     if (req.body.isRecorded !== undefined) updateData.is_recorded = req.body.isRecorded;
 
-    const { data, error } = await supabase.from('rooms').update(updateData).eq('id', req.params.id).select().single();
+    let { data, error } = await supabase.from('rooms').update(updateData).eq('id', req.params.id).select().single();
+
+    if (error && (error.code === '42703' || error.message.includes('column'))) {
+      console.log("Fallback: location_type missing, trying description...");
+      delete updateData.location_type;
+      updateData.description = req.body.locationType;
+      const retry = await supabase.from('rooms').update(updateData).eq('id', req.params.id).select().single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) throw error;
     res.json(mapRoomFromDB(data));
   } catch (error) {
