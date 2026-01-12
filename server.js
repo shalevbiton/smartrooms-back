@@ -524,6 +524,25 @@ app.get('/api/bookings/:id', async (req, res) => {
 app.post('/api/bookings', async (req, res) => {
   try {
     let dbData = mapBookingToDB(req.body);
+
+    // Conflict Check: Prevent duplicate/overlapping orders
+    const { data: conflicts, error: conflictError } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('room_id', dbData.room_id)
+      .in('status', ['APPROVED', 'PENDING'])
+      .lt('start_time', dbData.end_time)
+      .gt('end_time', dbData.start_time);
+
+    if (conflictError) {
+      console.error('Conflict check error:', conflictError);
+      throw conflictError;
+    }
+
+    if (conflicts && conflicts.length > 0) {
+      return res.status(409).json({ error: "Booking conflict: The room is already booked for this time range." });
+    }
+
     let { data, error } = await supabase.from('bookings').insert(dbData).select().single();
 
     // Fallback for missing booking_type column (in case DB schema is old)
