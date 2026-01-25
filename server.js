@@ -19,6 +19,7 @@ import {
   getChallenge,
   clearChallenge
 } from './passkeyService.js';
+import cron from 'node-cron';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -53,6 +54,29 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+// Scheduled Task: Delete bookings from the last 7 days every Saturday at 23:00
+cron.schedule('0 23 * * 6', async () => {
+  console.log('Running scheduled task: Deleting bookings from the last 7 days...');
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Delete bookings started in the last 7 days
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .gte('start_time', sevenDaysAgo.toISOString());
+
+    if (error) {
+      console.error('Error deleting bookings:', error);
+    } else {
+      console.log('Successfully deleted bookings from the last 7 days.');
+    }
+  } catch (err) {
+    console.error('Unexpected error during scheduled deletion:', err);
+  }
+});
 
 // CORS Configuration
 // CORS Configuration
